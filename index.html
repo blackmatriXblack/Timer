@@ -1,0 +1,2003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TimeMate — Minimal Time Tracking</title>
+    <style>
+        :root {
+            --bg: #fafafa;
+            --surface: #ffffff;
+            --surface2: #f5f5f5;
+            --border: #e8e8e8;
+            --text: #1a1a1a;
+            --text2: #6b6b6b;
+            --text3: #a0a0a0;
+            --accent: #3b82f6;
+            --accent-light: #eff6ff;
+            --accent2: #10b981;
+            --red: #ef4444;
+            --red-light: #fef2f2;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.06), 0 4px 10px rgba(0, 0, 0, 0.04);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --radius-xs: 4px;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --sidebar-w: 220px;
+            --font: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            --mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+        }
+        .dark {
+            --bg: #0f0f0f;
+            --surface: #1a1a1a;
+            --surface2: #222222;
+            --border: #2a2a2a;
+            --text: #e8e8e8;
+            --text2: #999;
+            --text3: #666;
+            --accent: #60a5fa;
+            --accent-light: #1e293b;
+            --red: #f87171;
+            --red-light: #1f1315;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.4), 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            transition: background var(--transition), color var(--transition);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            letter-spacing: -0.01em;
+        }
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-w);
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 20px 16px;
+            gap: 6px;
+            flex-shrink: 0;
+            z-index: 100;
+            transition: all var(--transition);
+            position: relative;
+        }
+        .sidebar-logo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            padding: 8px 12px 20px;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            user-select: none;
+        }
+        .sidebar-logo .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: pulse-dot 2s infinite;
+        }
+        @keyframes pulse-dot {
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+            }
+        }
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+        }
+        .sidebar-nav button {
+            all: unset;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text2);
+            transition: all var(--transition);
+            letter-spacing: -0.01em;
+            position: relative;
+        }
+        .sidebar-nav button:hover {
+            background: var(--surface2);
+            color: var(--text);
+        }
+        .sidebar-nav button.active {
+            background: var(--accent-light);
+            color: var(--accent);
+            font-weight: 600;
+        }
+        .sidebar-nav button.active::before {
+            content: '';
+            position: absolute;
+            left: -16px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 0 3px 3px 0;
+        }
+        .sidebar-nav svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            opacity: 0.7;
+        }
+        .sidebar-nav button.active svg {
+            opacity: 1;
+        }
+        .sidebar-footer {
+            border-top: 1px solid var(--border);
+            padding-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .sidebar-footer button {
+            all: unset;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--text2);
+            transition: all var(--transition);
+        }
+        .sidebar-footer button:hover {
+            background: var(--surface2);
+            color: var(--text);
+        }
+        .sidebar-footer svg {
+            width: 17px;
+            height: 17px;
+            flex-shrink: 0;
+            opacity: 0.6;
+        }
+        /* Main */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+        .view {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+            overflow-y: auto;
+            padding: 32px 36px;
+            gap: 24px;
+        }
+        .view.active {
+            display: flex;
+        }
+        .view-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .view-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+        }
+        /* Tracker */
+        .tracker-hero {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            padding: 28px 32px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            transition: all var(--transition);
+        }
+        .timer-display {
+            font-family: var(--mono);
+            font-size: 3.5rem;
+            font-weight: 300;
+            letter-spacing: 0.02em;
+            color: var(--text);
+            min-width: 200px;
+            user-select: none;
+            transition: color var(--transition);
+        }
+        .timer-display.running {
+            color: var(--accent);
+        }
+        .tracker-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .btn {
+            all: unset;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            padding: 11px 20px;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition);
+            letter-spacing: -0.01em;
+            white-space: nowrap;
+            border: 1px solid transparent;
+        }
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        .btn-primary:hover {
+            filter: brightness(1.08);
+            box-shadow: var(--shadow-lg);
+        }
+        .btn-outline {
+            border-color: var(--border);
+            color: var(--text);
+            background: var(--surface);
+        }
+        .btn-outline:hover {
+            background: var(--surface2);
+            border-color: var(--text3);
+        }
+        .btn-ghost {
+            color: var(--text2);
+            background: transparent;
+            padding: 8px 14px;
+        }
+        .btn-ghost:hover {
+            background: var(--surface2);
+            color: var(--text);
+        }
+        .btn-danger {
+            color: var(--red);
+            border-color: transparent;
+            background: var(--red-light);
+        }
+        .btn-danger:hover {
+            filter: brightness(0.95);
+        }
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            border-radius: var(--radius-xs);
+        }
+        .btn-xs {
+            padding: 4px 8px;
+            font-size: 0.72rem;
+            border-radius: var(--radius-xs);
+        }
+        .btn-icon {
+            width: 38px;
+            height: 38px;
+            padding: 0;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-icon.sm {
+            width: 30px;
+            height: 30px;
+        }
+        .input {
+            all: unset;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            background: var(--surface);
+            color: var(--text);
+            transition: all var(--transition);
+            font-family: var(--font);
+            letter-spacing: -0.01em;
+            width: 100%;
+        }
+        .input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
+        }
+        .input::placeholder {
+            color: var(--text3);
+        }
+        select.input {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a0a0a0' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+        }
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            background: var(--surface2);
+            color: var(--text2);
+            border: 1px solid var(--border);
+            transition: all var(--transition);
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .tag.selected {
+            background: var(--accent-light);
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+        .tag .tag-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow);
+            transition: all var(--transition);
+        }
+        .card-header {
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text2);
+            margin-bottom: 14px;
+        }
+        .entry-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.88rem;
+            transition: all var(--transition);
+            flex-wrap: wrap;
+        }
+        .entry-row:last-child {
+            border-bottom: none;
+        }
+        .entry-row:hover {
+            background: var(--surface2);
+            margin: 0 -12px;
+            padding-left: 12px;
+            padding-right: 12px;
+            border-radius: var(--radius-xs);
+        }
+        .entry-time {
+            font-family: var(--mono);
+            font-size: 0.82rem;
+            color: var(--text2);
+            min-width: 90px;
+        }
+        .entry-duration {
+            font-family: var(--mono);
+            font-weight: 600;
+            min-width: 70px;
+            text-align: right;
+        }
+        .entry-project-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .entry-desc {
+            flex: 1;
+            min-width: 100px;
+            color: var(--text);
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text3);
+            font-size: 0.9rem;
+        }
+        /* Calendar */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+        .calendar-day-header {
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text3);
+            padding: 8px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .calendar-cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all var(--transition);
+            position: relative;
+            color: var(--text);
+            background: var(--surface);
+            border: 1px solid transparent;
+        }
+        .calendar-cell:hover {
+            background: var(--surface2);
+            border-color: var(--border);
+        }
+        .calendar-cell.other-month {
+            color: var(--text3);
+            opacity: 0.4;
+        }
+        .calendar-cell.today {
+            border: 2px solid var(--accent);
+            font-weight: 700;
+            background: var(--accent-light);
+        }
+        .calendar-cell.has-entries::after {
+            content: '';
+            position: absolute;
+            bottom: 6px;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--accent);
+        }
+        .calendar-cell.selected {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        .calendar-cell.selected::after {
+            background: #fff;
+        }
+        /* Pomodoro */
+        .pomodoro-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+            padding: 40px 20px;
+        }
+        .pomodoro-ring {
+            position: relative;
+            width: 220px;
+            height: 220px;
+        }
+        .pomodoro-ring svg {
+            transform: rotate(-90deg);
+        }
+        .pomodoro-ring .bg-circle {
+            fill: none;
+            stroke: var(--surface2);
+            stroke-width: 8;
+        }
+        .pomodoro-ring .progress-circle {
+            fill: none;
+            stroke: var(--accent);
+            stroke-width: 8;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.3s linear;
+        }
+        .pomodoro-ring .progress-circle.break {
+            stroke: var(--accent2);
+        }
+        .pomodoro-time {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--mono);
+            font-size: 2.6rem;
+            font-weight: 300;
+            letter-spacing: 0.03em;
+        }
+        .pomodoro-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--text2);
+        }
+        .pomodoro-sessions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .pomodoro-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--border);
+            transition: all var(--transition);
+        }
+        .pomodoro-dot.completed {
+            background: var(--accent);
+        }
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+        }
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow);
+            transition: all var(--transition);
+        }
+        .stat-value {
+            font-family: var(--mono);
+            font-size: 2rem;
+            font-weight: 300;
+            letter-spacing: 0.02em;
+        }
+        .stat-label {
+            font-size: 0.78rem;
+            color: var(--text2);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-top: 4px;
+        }
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            height: 160px;
+            padding: 8px 0;
+        }
+        .bar-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            min-width: 30px;
+        }
+        .bar {
+            width: 100%;
+            max-width: 48px;
+            border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+            background: var(--accent);
+            transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            min-height: 4px;
+            cursor: pointer;
+        }
+        .bar:hover {
+            filter: brightness(1.1);
+            box-shadow: var(--shadow-lg);
+        }
+        .bar-label {
+            font-size: 0.7rem;
+            color: var(--text3);
+            text-align: center;
+        }
+        /* Settings */
+        .settings-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .settings-section h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text2);
+            margin-bottom: 4px;
+        }
+        .project-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            cursor: pointer;
+            transition: all var(--transition);
+            user-select: none;
+        }
+        .project-chip:hover {
+            box-shadow: var(--shadow);
+        }
+        .color-dot {
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--text);
+            color: var(--bg);
+            padding: 12px 20px;
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            font-weight: 500;
+            z-index: 9999;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+            letter-spacing: -0.01em;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        /* Mobile */
+        .mobile-toggle {
+            display: none;
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            z-index: 200;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow);
+        }
+        .overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.35);
+            z-index: 99;
+        }
+        .overlay.show {
+            display: block;
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -260px;
+                top: 0;
+                bottom: 0;
+                box-shadow: var(--shadow-lg);
+                transition: left var(--transition);
+            }
+            .sidebar.open {
+                left: 0;
+            }
+            .mobile-toggle {
+                display: flex;
+            }
+            .view {
+                padding: 20px 16px;
+                padding-top: 60px;
+            }
+            .timer-display {
+                font-size: 2.4rem;
+                min-width: auto;
+            }
+            .tracker-hero {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .calendar-cell {
+                font-size: 0.7rem;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text3);
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile Toggle -->
+    <button class="mobile-toggle" id="mobileToggle" aria-label="Menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+    <div class="overlay" id="overlay"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-logo">
+            <span class="dot"></span> TimeMate
+        </div>
+        <nav class="sidebar-nav">
+            <button data-view="tracker" class="active" aria-label="Tracker">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Tracker
+            </button>
+            <button data-view="calendar" aria-label="Calendar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Calendar
+            </button>
+            <button data-view="pomodoro" aria-label="Pomodoro">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9 2h6"/><path d="M12 2v2"/></svg> Pomodoro
+            </button>
+            <button data-view="stats" aria-label="Statistics">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Statistics
+            </button>
+            <button data-view="settings" aria-label="Settings">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Settings
+            </button>
+        </nav>
+        <div class="sidebar-footer">
+            <button id="themeToggle" aria-label="Toggle theme">
+                <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg> Theme
+            </button>
+            <button id="exportBtn" aria-label="Export data">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export CSV
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main" id="mainContent">
+        <!-- Tracker View -->
+        <div class="view active" id="view-tracker">
+            <div class="view-header">
+                <h2 class="view-title">Time Tracker</h2>
+                <span style="font-size:0.85rem;color:var(--text3)" id="currentDateDisplay"></span>
+            </div>
+            <div class="tracker-hero">
+                <div class="timer-display" id="timerDisplay">00:00:00</div>
+                <div class="tracker-controls">
+                    <button class="btn btn-primary" id="timerStartBtn" aria-label="Start tracking">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg> Start
+                    </button>
+                    <button class="btn btn-outline" id="timerStopBtn" style="display:none" aria-label="Stop tracking">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1"/></svg> Stop
+                    </button>
+                    <button class="btn btn-ghost btn-icon sm" id="timerResetBtn" aria-label="Reset timer" title="Reset">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.5 17.5A9 9 0 1 0 2 12"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+                <select class="input" id="projectSelect" style="max-width:200px" aria-label="Select project">
+                    <option value="">No Project</option>
+                </select>
+                <input class="input" type="text" id="taskInput" placeholder="What are you working on?" style="flex:1;min-width:180px;max-width:400px" aria-label="Task description">
+                <div id="tagSelector" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"></div>
+                <button class="btn btn-ghost btn-sm" id="addTagBtn" aria-label="Add tag">+ Tag</button>
+            </div>
+            <div class="card">
+                <div class="card-header">Today's Timeline</div>
+                <div id="todayEntries" style="max-height:350px;overflow-y:auto">
+                    <div class="empty-state">No entries recorded today. Start tracking your time!</div>
+                </div>
+                <div style="text-align:right;margin-top:12px;font-family:var(--mono);font-weight:600;color:var(--text)" id="todayTotal">Total: 0h 0m</div>
+            </div>
+        </div>
+
+        <!-- Calendar View -->
+        <div class="view" id="view-calendar">
+            <div class="view-header">
+                <h2 class="view-title">Calendar</h2>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <button class="btn btn-ghost btn-sm" id="calPrevMonth" aria-label="Previous month">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                    </button>
+                    <span style="font-weight:600;min-width:140px;text-align:center" id="calMonthLabel"></span>
+                    <button class="btn btn-ghost btn-sm" id="calNextMonth" aria-label="Next month">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="calendar-grid" id="calendarGrid"></div>
+            </div>
+            <div class="card" id="calDayDetail" style="display:none">
+                <div class="card-header" id="calDayDetailTitle">Details</div>
+                <div id="calDayEntries"></div>
+            </div>
+        </div>
+
+        <!-- Pomodoro View -->
+        <div class="view" id="view-pomodoro">
+            <div class="view-header">
+                <h2 class="view-title">Pomodoro Timer</h2>
+            </div>
+            <div class="pomodoro-container">
+                <div class="pomodoro-ring">
+                    <svg width="220" height="220" viewBox="0 0 220 220">
+                        <circle class="bg-circle" cx="110" cy="110" r="100"/>
+                        <circle class="progress-circle" id="pomodoroProgress" cx="110" cy="110" r="100" stroke-dasharray="628.32" stroke-dashoffset="0"/>
+                    </svg>
+                    <div class="pomodoro-time" id="pomodoroTimeDisplay">25:00</div>
+                </div>
+                <div class="pomodoro-label" id="pomodoroLabel">Focus Session</div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+                    <button class="btn btn-primary" id="pomodoroStartBtn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg> Start Focus
+                    </button>
+                    <button class="btn btn-outline" id="pomodoroPauseBtn" style="display:none">Pause</button>
+                    <button class="btn btn-ghost" id="pomodoroResetBtn">Reset</button>
+                </div>
+                <div class="pomodoro-sessions" id="pomodoroSessions"></div>
+                <div style="display:flex;gap:8px;align-items:center;font-size:0.85rem;color:var(--text2)">
+                    <span>Focus: <b>25m</b></span> <span>·</span>
+                    <span>Break: <b>5m</b></span> <span>·</span>
+                    <span>Sessions: <b id="pomodoroCount">0</b></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats View -->
+        <div class="view" id="view-stats">
+            <div class="view-header"><h2 class="view-title">Statistics</h2></div>
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-value" id="statToday">0h 0m</div><div class="stat-label">Today</div></div>
+                <div class="stat-card"><div class="stat-value" id="statWeek">0h 0m</div><div class="stat-label">This Week</div></div>
+                <div class="stat-card"><div class="stat-value" id="statMonth">0h 0m</div><div class="stat-label">This Month</div></div>
+                <div class="stat-card"><div class="stat-value" id="statTotal">0h 0m</div><div class="stat-label">All Time</div></div>
+            </div>
+            <div class="card">
+                <div class="card-header">Daily Breakdown (Last 7 Days)</div>
+                <div class="bar-chart" id="weeklyBarChart"></div>
+            </div>
+            <div class="card">
+                <div class="card-header">Project Distribution (This Month)</div>
+                <div id="projectDist" style="display:flex;flex-direction:column;gap:8px"></div>
+            </div>
+        </div>
+
+        <!-- Settings View -->
+        <div class="view" id="view-settings">
+            <div class="view-header"><h2 class="view-title">Settings</h2></div>
+            <div class="card settings-section">
+                <h3>Projects</h3>
+                <div id="projectList" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px">
+                    <input class="input" type="text" id="newProjectName" placeholder="New project name" style="max-width:200px" aria-label="New project name">
+                    <select class="input" id="newProjectColor" style="max-width:120px" aria-label="Project color">
+                        <option value="#3B82F6">Blue</option>
+                        <option value="#10B981">Green</option>
+                        <option value="#F59E0B">Amber</option>
+                        <option value="#EF4444">Red</option>
+                        <option value="#8B5CF6">Purple</option>
+                        <option value="#EC4899">Pink</option>
+                        <option value="#06B6D4">Cyan</option>
+                        <option value="#F97316">Orange</option>
+                    </select>
+                    <button class="btn btn-primary btn-sm" id="addProjectBtn">Add Project</button>
+                </div>
+            </div>
+            <div class="card settings-section">
+                <h3>Tags</h3>
+                <div id="tagList" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px">
+                    <input class="input" type="text" id="newTagName" placeholder="New tag name" style="max-width:200px" aria-label="New tag name">
+                    <select class="input" id="newTagColor" style="max-width:120px" aria-label="Tag color">
+                        <option value="#6B7280">Gray</option>
+                        <option value="#3B82F6">Blue</option>
+                        <option value="#10B981">Green</option>
+                        <option value="#F59E0B">Amber</option>
+                        <option value="#EF4444">Red</option>
+                        <option value="#8B5CF6">Purple</option>
+                    </select>
+                    <button class="btn btn-primary btn-sm" id="addTagBtn2">Add Tag</button>
+                </div>
+            </div>
+            <div class="card settings-section">
+                <h3>Data Management</h3>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <button class="btn btn-outline btn-sm" id="exportAllBtn">Export All Data (JSON)</button>
+                    <button class="btn btn-outline btn-sm" id="importBtn">Import Data</button>
+                    <button class="btn btn-danger btn-sm" id="clearDataBtn">Clear All Data</button>
+                </div>
+                <input type="file" id="importFileInput" style="display:none" accept=".json">
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────
+            // STATE & STORAGE
+            // ──────────────────────────────────────
+            const STORAGE_KEYS = {
+                projects: 'timemate_projects',
+                entries: 'timemate_entries',
+                tags: 'timemate_tags',
+                settings: 'timemate_settings',
+                pomodoroCount: 'timemate_pomodoro_count',
+                timerState: 'timemate_timer_state',
+            };
+
+            function loadJSON(key, fallback) {
+                try {
+                    const raw = localStorage.getItem(key);
+                    return raw ? JSON.parse(raw) : fallback;
+                } catch { return fallback; }
+            }
+
+            function saveJSON(key, data) {
+                try { localStorage.setItem(key, JSON.stringify(data)); } catch {}
+            }
+
+            let projects = loadJSON(STORAGE_KEYS.projects, [
+                { id: 'p1', name: 'Work', color: '#3B82F6', createdAt: Date.now() - 86400000 },
+                { id: 'p2', name: 'Personal', color: '#10B981', createdAt: Date.now() - 172800000 },
+            ]);
+            let tags = loadJSON(STORAGE_KEYS.tags, [
+                { id: 't1', name: 'Deep Work', color: '#8B5CF6' },
+                { id: 't2', name: 'Meeting', color: '#F59E0B' },
+                { id: 't3', name: 'Learning', color: '#06B6D4' },
+            ]);
+            let entries = loadJSON(STORAGE_KEYS.entries, []);
+            let settings = loadJSON(STORAGE_KEYS.settings, { darkMode: false, pomodoroFocusMin: 25,
+                pomodoroBreakMin: 5 });
+            let pomodoroSessionCount = loadJSON(STORAGE_KEYS.pomodoroCount, 0);
+
+            // Timer state
+            let timerRunning = false;
+            let timerStartTime = null;
+            let timerElapsed = 0; // in seconds, accumulated before current run
+            let timerInterval = null;
+            let currentProjectId = '';
+            let currentTask = '';
+            let currentTagIds = [];
+            let selectedCalDate = null;
+
+            // Pomodoro state
+            let pomodoroRunning = false;
+            let pomodoroIsBreak = false;
+            let pomodoroTotalSec = settings.pomodoroFocusMin * 60;
+            let pomodoroRemaining = pomodoroTotalSec;
+            let pomodoroInterval = null;
+            let pomodoroCompletedThisSession = 0;
+
+            // Calendar navigation
+            let calYear, calMonth;
+
+            // ──────────────────────────────────────
+            // UTILS
+            // ──────────────────────────────────────
+            function genId() { return 'id_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8); }
+
+            function todayStr() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2,
+                    '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+
+            function formatDuration(sec) {
+                if (sec < 0) sec = 0;
+                const h = Math.floor(sec / 3600);
+                const m = Math.floor((sec % 3600) / 60);
+                const s = sec % 60;
+                if (h > 0) return h + 'h ' + m + 'm';
+                if (m > 0) return m + 'm ' + s + 's';
+                return s + 's';
+            }
+
+            function formatDurationHM(sec) {
+                if (sec < 0) sec = 0;
+                const h = Math.floor(sec / 3600);
+                const m = Math.floor((sec % 3600) / 60);
+                return h + 'h ' + m + 'm';
+            }
+
+            function formatClock(sec) {
+                if (sec < 0) sec = 0;
+                const h = String(Math.floor(sec / 3600)).padStart(2, '0');
+                const m = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
+                const s = String(sec % 60).padStart(2, '0');
+                return h + ':' + m + ':' + s;
+            }
+
+            function getProject(id) { return projects.find(p => p.id === id) || null; }
+
+            function getTag(id) { return tags.find(t => t.id === id) || null; }
+
+            function getEntriesForDate(dateStr) {
+                return entries.filter(e => e.date === dateStr).sort((a, b) => (b.startTime || 0) - (a.startTime || 0));
+            }
+
+            function getTotalDurationForDate(dateStr) {
+                return getEntriesForDate(dateStr).reduce((sum, e) => sum + (e.duration || 0), 0);
+            }
+
+            function getEntriesForDateRange(startDateStr, endDateStr) {
+                return entries.filter(e => e.date >= startDateStr && e.date <= endDateStr);
+            }
+
+            function weekStart(dateStr) {
+                const d = new Date(dateStr + 'T00:00:00');
+                const day = d.getDay();
+                const diff = day === 0 ? -6 : 1 - day;
+                d.setDate(d.getDate() + diff);
+                return d.toISOString().slice(0, 10);
+            }
+
+            function monthStart(dateStr) {
+                return dateStr.slice(0, 7) + '-01';
+            }
+
+            // ──────────────────────────────────────
+            // PERSISTENCE
+            // ──────────────────────────────────────
+            function saveAll() {
+                saveJSON(STORAGE_KEYS.projects, projects);
+                saveJSON(STORAGE_KEYS.entries, entries);
+                saveJSON(STORAGE_KEYS.tags, tags);
+                saveJSON(STORAGE_KEYS.settings, settings);
+                saveJSON(STORAGE_KEYS.pomodoroCount, pomodoroSessionCount);
+            }
+
+            function saveTimerState() {
+                saveJSON(STORAGE_KEYS.timerState, {
+                    running: timerRunning,
+                    startTime: timerStartTime,
+                    elapsed: timerElapsed,
+                    projectId: currentProjectId,
+                    task: currentTask,
+                    tagIds: currentTagIds,
+                });
+            }
+
+            function restoreTimerState() {
+                const saved = loadJSON(STORAGE_KEYS.timerState, null);
+                if (!saved) return;
+                timerElapsed = saved.elapsed || 0;
+                currentProjectId = saved.projectId || '';
+                currentTask = saved.task || '';
+                currentTagIds = saved.tagIds || [];
+                if (saved.running && saved.startTime) {
+                    const now = Date.now();
+                    const additional = Math.floor((now - saved.startTime) / 1000);
+                    timerElapsed += additional;
+                    timerStartTime = now;
+                    timerRunning = true;
+                    startTimerInterval();
+                } else {
+                    timerRunning = false;
+                    timerStartTime = null;
+                }
+                updateTimerDisplay();
+                updateTrackerUI();
+            }
+
+            // ──────────────────────────────────────
+            // TIMER LOGIC
+            // ──────────────────────────────────────
+            function getCurrentTimerSeconds() {
+                if (!timerRunning) return timerElapsed;
+                return timerElapsed + Math.floor((Date.now() - timerStartTime) / 1000);
+            }
+
+            function startTimerInterval() {
+                if (timerInterval) clearInterval(timerInterval);
+                timerInterval = setInterval(() => {
+                    updateTimerDisplay();
+                }, 250);
+            }
+
+            function stopTimerInterval() {
+                if (timerInterval) { clearInterval(timerInterval);
+                    timerInterval = null; }
+            }
+
+            function startTimer() {
+                if (timerRunning) return;
+                timerStartTime = Date.now();
+                timerRunning = true;
+                startTimerInterval();
+                updateTimerDisplay();
+                updateTrackerUI();
+                saveTimerState();
+            }
+
+            function stopTimer() {
+                if (!timerRunning) return;
+                const totalSec = getCurrentTimerSeconds();
+                stopTimerInterval();
+                timerRunning = false;
+                timerStartTime = null;
+                timerElapsed = 0;
+                if (totalSec > 0) {
+                    const entry = {
+                        id: genId(),
+                        projectId: currentProjectId || null,
+                        task: currentTask || 'Untitled',
+                        tags: [...currentTagIds],
+                        startTime: Date.now() - totalSec * 1000,
+                        endTime: Date.now(),
+                        duration: totalSec,
+                        date: todayStr(),
+                    };
+                    entries.unshift(entry);
+                }
+                currentProjectId = '';
+                currentTask = '';
+                currentTagIds = [];
+                updateTimerDisplay();
+                updateTrackerUI();
+                saveAll();
+                saveTimerState();
+                refreshAllViews();
+            }
+
+            function resetTimer() {
+                stopTimerInterval();
+                timerRunning = false;
+                timerStartTime = null;
+                timerElapsed = 0;
+                currentProjectId = '';
+                currentTask = '';
+                currentTagIds = [];
+                updateTimerDisplay();
+                updateTrackerUI();
+                saveTimerState();
+            }
+
+            function updateTimerDisplay() {
+                const sec = getCurrentTimerSeconds();
+                const el = document.getElementById('timerDisplay');
+                el.textContent = formatClock(sec);
+                if (timerRunning) {
+                    el.classList.add('running');
+                } else {
+                    el.classList.remove('running');
+                }
+            }
+
+            function updateTrackerUI() {
+                const startBtn = document.getElementById('timerStartBtn');
+                const stopBtn = document.getElementById('timerStopBtn');
+                const resetBtn = document.getElementById('timerResetBtn');
+                const projectSel = document.getElementById('projectSelect');
+                const taskInp = document.getElementById('taskInput');
+
+                if (timerRunning) {
+                    startBtn.style.display = 'none';
+                    stopBtn.style.display = '';
+                    projectSel.value = currentProjectId || '';
+                    taskInp.value = currentTask;
+                } else {
+                    startBtn.style.display = '';
+                    stopBtn.style.display = 'none';
+                    projectSel.value = currentProjectId || '';
+                    taskInp.value = currentTask;
+                }
+                updateTagSelectorUI();
+            }
+
+            // ──────────────────────────────────────
+            // TAG SELECTOR
+            // ──────────────────────────────────────
+            function updateTagSelectorUI() {
+                const container = document.getElementById('tagSelector');
+                container.innerHTML = tags.map(t => {
+                    const sel = currentTagIds.includes(t.id);
+                    return `<span class="tag${sel?' selected':''}" data-tag-id="${t.id}" style="cursor:pointer">
+                <span class="tag-dot" style="background:${t.color}"></span>${t.name}
+              </span>`;
+                }).join('');
+                // Click handlers
+                container.querySelectorAll('.tag').forEach(el => {
+                    el.addEventListener('click', () => {
+                        const tid = el.dataset.tagId;
+                        if (currentTagIds.includes(tid)) {
+                            currentTagIds = currentTagIds.filter(id => id !== tid);
+                        } else {
+                            currentTagIds.push(tid);
+                        }
+                        updateTagSelectorUI();
+                        saveTimerState();
+                    });
+                });
+            }
+
+            // ──────────────────────────────────────
+            // POMODORO
+            // ──────────────────────────────────────
+            function updatePomodoroDisplay() {
+                const mins = Math.floor(pomodoroRemaining / 60);
+                const secs = pomodoroRemaining % 60;
+                document.getElementById('pomodoroTimeDisplay').textContent =
+                    String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+                const total = pomodoroIsBreak ? settings.pomodoroBreakMin * 60 : settings.pomodoroFocusMin * 60;
+                const fraction = 1 - (pomodoroRemaining / total);
+                const circumference = 628.32;
+                const offset = circumference * (1 - fraction);
+                const progressCircle = document.getElementById('pomodoroProgress');
+                progressCircle.setAttribute('stroke-dashoffset', offset);
+                if (pomodoroIsBreak) {
+                    progressCircle.classList.add('break');
+                } else {
+                    progressCircle.classList.remove('break');
+                }
+                document.getElementById('pomodoroLabel').textContent = pomodoroIsBreak ? 'Break Time' : 'Focus Session';
+                document.getElementById('pomodoroCount').textContent = pomodoroSessionCount;
+            }
+
+            function startPomodoro() {
+                if (pomodoroRunning) return;
+                pomodoroRunning = true;
+                document.getElementById('pomodoroStartBtn').style.display = 'none';
+                document.getElementById('pomodoroPauseBtn').style.display = '';
+                pomodoroInterval = setInterval(() => {
+                    pomodoroRemaining--;
+                    updatePomodoroDisplay();
+                    if (pomodoroRemaining <= 0) {
+                        pomodoroComplete();
+                    }
+                }, 1000);
+                updatePomodoroDisplay();
+            }
+
+            function pausePomodoro() {
+                pomodoroRunning = false;
+                if (pomodoroInterval) { clearInterval(pomodoroInterval);
+                    pomodoroInterval = null; }
+                document.getElementById('pomodoroStartBtn').style.display = '';
+                document.getElementById('pomodoroPauseBtn').style.display = 'none';
+                document.getElementById('pomodoroStartBtn').innerHTML =
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg> Resume';
+            }
+
+            function resetPomodoro() {
+                pomodoroRunning = false;
+                if (pomodoroInterval) { clearInterval(pomodoroInterval);
+                    pomodoroInterval = null; }
+                pomodoroIsBreak = false;
+                pomodoroTotalSec = settings.pomodoroFocusMin * 60;
+                pomodoroRemaining = pomodoroTotalSec;
+                pomodoroCompletedThisSession = 0;
+                document.getElementById('pomodoroStartBtn').style.display = '';
+                document.getElementById('pomodoroPauseBtn').style.display = 'none';
+                document.getElementById('pomodoroStartBtn').innerHTML =
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg> Start Focus';
+                updatePomodoroDisplay();
+                updatePomodoroSessions();
+            }
+
+            function pomodoroComplete() {
+                if (pomodoroInterval) { clearInterval(pomodoroInterval);
+                    pomodoroInterval = null; }
+                pomodoroRunning = false;
+                if (!pomodoroIsBreak) {
+                    pomodoroSessionCount++;
+                    pomodoroCompletedThisSession++;
+                    saveJSON(STORAGE_KEYS.pomodoroCount, pomodoroSessionCount);
+                    // Auto-log a time entry for the completed focus session
+                    const entry = {
+                        id: genId(),
+                        projectId: currentProjectId || null,
+                        task: 'Pomodoro Focus Session',
+                        tags: [...currentTagIds],
+                        startTime: Date.now() - settings.pomodoroFocusMin * 60 * 1000,
+                        endTime: Date.now(),
+                        duration: settings.pomodoroFocusMin * 60,
+                        date: todayStr(),
+                    };
+                    entries.unshift(entry);
+                    saveAll();
+                    showToast('Pomodoro completed! ✓');
+                    // Switch to break
+                    pomodoroIsBreak = true;
+                    pomodoroTotalSec = settings.pomodoroBreakMin * 60;
+                    pomodoroRemaining = pomodoroTotalSec;
+                    document.getElementById('pomodoroStartBtn').innerHTML =
+                        '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg> Start Break';
+                } else {
+                    // Break completed
+                    pomodoroIsBreak = false;
+                    pomodoroTotalSec = settings.pomodoroFocusMin * 60;
+                    pomodoroRemaining = pomodoroTotalSec;
+                    document.getElementById('pomodoroStartBtn').innerHTML =
+                        '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg> Start Focus';
+                    showToast('Break over! Time to focus.');
+                }
+                document.getElementById('pomodoroStartBtn').style.display = '';
+                document.getElementById('pomodoroPauseBtn').style.display = 'none';
+                updatePomodoroDisplay();
+                updatePomodoroSessions();
+                refreshAllViews();
+            }
+
+            function updatePomodoroSessions() {
+                const container = document.getElementById('pomodoroSessions');
+                const total = 4;
+                let html = '';
+                for (let i = 0; i < total; i++) {
+                    html +=
+                        `<span class="pomodoro-dot${i < pomodoroCompletedThisSession ? ' completed' : ''}"></span>`;
+                }
+                container.innerHTML = html;
+            }
+
+            // ──────────────────────────────────────
+            // RENDER TODAY ENTRIES
+            // ──────────────────────────────────────
+            function renderTodayEntries() {
+                const today = todayStr();
+                const todayEntries = getEntriesForDate(today);
+                const container = document.getElementById('todayEntries');
+                const totalEl = document.getElementById('todayTotal');
+                if (todayEntries.length === 0) {
+                    container.innerHTML = '<div class="empty-state">No entries recorded today. Start tracking your time!</div>';
+                } else {
+                    container.innerHTML = todayEntries.map(e => {
+                        const proj = getProject(e.projectId);
+                        const projName = proj ? proj.name : '—';
+                        const projColor = proj ? proj.color : 'transparent';
+                        const timeStr = e.startTime ? new Date(e.startTime).toLocaleTimeString(
+                            [], { hour: '2-digit', minute: '2-digit' }) : '—';
+                        const tagNames = e.tags.map(tid => getTag(tid)).filter(Boolean).map(t => t.name)
+                            .join(', ');
+                        return `
+                <div class="entry-row">
+                  <span class="entry-project-dot" style="background:${projColor};${!proj?'border:1px solid var(--border)':''}"></span>
+                  <span class="entry-desc">${escapeHTML(e.task)}</span>
+                  ${tagNames ? `<span style="font-size:0.7rem;color:var(--text3)">${escapeHTML(tagNames)}</span>` : ''}
+                  <span class="entry-time">${timeStr}</span>
+                  <span class="entry-duration">${formatDuration(e.duration)}</span>
+                  <button class="btn btn-ghost btn-xs" data-delete-entry="${e.id}" title="Delete" style="color:var(--red);opacity:0.5">×</button>
+                </div>`;
+                    }).join('');
+                }
+                const totalSec = todayEntries.reduce((s, e) => s + e.duration, 0);
+                totalEl.textContent = 'Total: ' + formatDurationHM(totalSec);
+                // Delete handlers
+                container.querySelectorAll('[data-delete-entry]').forEach(btn => {
+                    btn.addEventListener('click', (ev) => {
+                        ev.stopPropagation();
+                        const eid = btn.dataset.deleteEntry;
+                        entries = entries.filter(e => e.id !== eid);
+                        saveAll();
+                        renderTodayEntries();
+                        refreshCalendarIfVisible();
+                        refreshStatsIfVisible();
+                    });
+                });
+            }
+
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            // ──────────────────────────────────────
+            // CALENDAR
+            // ──────────────────────────────────────
+            function renderCalendar() {
+                const grid = document.getElementById('calendarGrid');
+                const label = document.getElementById('calMonthLabel');
+                const now = new Date();
+                if (calYear === undefined) calYear = now.getFullYear();
+                if (calMonth === undefined) calMonth = now.getMonth();
+                label.textContent = new Date(calYear, calMonth, 1).toLocaleDateString('en-US', { month: 'long',
+                    year: 'numeric' });
+
+                const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+                const firstDay = new Date(calYear, calMonth, 1).getDay();
+                const adjustedFirstDay = firstDay === 0 ? 6 : firstDay - 1; // Monday start
+                const today = todayStr();
+                const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+                let html = daysOfWeek.map(d => `<div class="calendar-day-header">${d}</div>`).join('');
+
+                // Previous month filler
+                const prevDays = new Date(calYear, calMonth, 0).getDate();
+                for (let i = adjustedFirstDay - 1; i >= 0; i--) {
+                    const d = prevDays - i;
+                    const m = calMonth === 0 ? 11 : calMonth - 1;
+                    const y = calMonth === 0 ? calYear - 1 : calYear;
+                    const ds = y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+                    const hasE = getTotalDurationForDate(ds) > 0;
+                    html +=
+                        `<div class="calendar-cell other-month${hasE?' has-entries':''}" data-date="${ds}">${d}</div>`;
+                }
+
+                for (let d = 1; d <= daysInMonth; d++) {
+                    const ds = calYear + '-' + String(calMonth + 1).padStart(2, '0') + '-' + String(d).padStart(2,
+                        '0');
+                    const isToday = ds === today;
+                    const hasE = getTotalDurationForDate(ds) > 0;
+                    const isSel = selectedCalDate === ds;
+                    html +=
+                        `<div class="calendar-cell${isToday?' today':''}${hasE?' has-entries':''}${isSel?' selected':''}" data-date="${ds}">${d}</div>`;
+                }
+
+                // Next month filler
+                const remaining = 42 - (adjustedFirstDay + daysInMonth);
+                for (let d = 1; d <= remaining; d++) {
+                    const m = calMonth === 11 ? 0 : calMonth + 1;
+                    const y = calMonth === 11 ? calYear + 1 : calYear;
+                    const ds = y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+                    const hasE = getTotalDurationForDate(ds) > 0;
+                    html +=
+                        `<div class="calendar-cell other-month${hasE?' has-entries':''}" data-date="${ds}">${d}</div>`;
+                }
+                grid.innerHTML = html;
+
+                // Click handlers
+                grid.querySelectorAll('.calendar-cell').forEach(cell => {
+                    cell.addEventListener('click', () => {
+                        selectedCalDate = cell.dataset.date;
+                        renderCalendar();
+                        renderCalDayDetail();
+                    });
+                });
+            }
+
+            function renderCalDayDetail() {
+                const detailCard = document.getElementById('calDayDetail');
+                const titleEl = document.getElementById('calDayDetailTitle');
+                const entriesEl = document.getElementById('calDayEntries');
+                if (!selectedCalDate) {
+                    detailCard.style.display = 'none';
+                    return;
+                }
+                detailCard.style.display = '';
+                titleEl.textContent = 'Details for ' + selectedCalDate;
+                const dayEntries = getEntriesForDate(selectedCalDate);
+                if (dayEntries.length === 0) {
+                    entriesEl.innerHTML = '<div class="empty-state">No entries for this date.</div>';
+                } else {
+                    entriesEl.innerHTML = dayEntries.map(e => {
+                        const proj = getProject(e.projectId);
+                        const projName = proj ? proj.name : '—';
+                        const projColor = proj ? proj.color : 'transparent';
+                        const timeStr = e.startTime ? new Date(e.startTime).toLocaleTimeString(
+                            [], { hour: '2-digit', minute: '2-digit' }) : '—';
+                        return `
+                <div class="entry-row">
+                  <span class="entry-project-dot" style="background:${projColor};${!proj?'border:1px solid var(--border)':''}"></span>
+                  <span class="entry-desc">${escapeHTML(e.task)}</span>
+                  <span class="entry-time">${timeStr}</span>
+                  <span class="entry-duration">${formatDuration(e.duration)}</span>
+                </div>`;
+                    }).join('');
+                }
+            }
+
+            function refreshCalendarIfVisible() {
+                if (document.getElementById('view-calendar').classList.contains('active')) {
+                    renderCalendar();
+                    renderCalDayDetail();
+                }
+            }
+
+            // ──────────────────────────────────────
+            // STATS
+            // ──────────────────────────────────────
+            function renderStats() {
+                const today = todayStr();
+                const weekS = weekStart(today);
+                const monthS = monthStart(today);
+
+                const todayTotal = getTotalDurationForDate(today);
+                const weekTotal = getEntriesForDateRange(weekS, today).reduce((s, e) => s + e.duration, 0);
+                const monthTotal = getEntriesForDateRange(monthS, today).reduce((s, e) => s + e.duration, 0);
+                const allTotal = entries.reduce((s, e) => s + e.duration, 0);
+
+                document.getElementById('statToday').textContent = formatDurationHM(todayTotal);
+                document.getElementById('statWeek').textContent = formatDurationHM(weekTotal);
+                document.getElementById('statMonth').textContent = formatDurationHM(monthTotal);
+                document.getElementById('statTotal').textContent = formatDurationHM(allTotal);
+
+                // Weekly bar chart
+                const barChart = document.getElementById('weeklyBarChart');
+                const days = [];
+                for (let i = 6; i >= 0; i--) {
+                    const d = new Date();
+                    d.setDate(d.getDate() - i);
+                    days.push(d.toISOString().slice(0, 10));
+                }
+                const dayTotals = days.map(d => getTotalDurationForDate(d));
+                const maxTotal = Math.max(...dayTotals, 1);
+                barChart.innerHTML = days.map((d, i) => {
+                    const h = Math.max((dayTotals[i] / maxTotal) * 140, 4);
+                    const label = new Date(d + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short' });
+                    return `<div class="bar-item">
+                <div class="bar" style="height:${h}px" title="${formatDuration(dayTotals[i])}"></div>
+                <span class="bar-label">${label}</span>
+              </div>`;
+                }).join('');
+
+                // Project distribution
+                const distContainer = document.getElementById('projectDist');
+                const monthEntries = getEntriesForDateRange(monthS, today);
+                const projMap = {};
+                monthEntries.forEach(e => {
+                    const pid = e.projectId || '__none__';
+                    projMap[pid] = (projMap[pid] || 0) + e.duration;
+                });
+                const totalMonth = Object.values(projMap).reduce((s, v) => s + v, 0) || 1;
+                const sorted = Object.entries(projMap).sort((a, b) => b[1] - a[1]);
+                if (sorted.length === 0) {
+                    distContainer.innerHTML = '<div class="empty-state">No data for this month.</div>';
+                } else {
+                    distContainer.innerHTML = sorted.map(([pid, dur]) => {
+                        const proj = getProject(pid);
+                        const name = proj ? proj.name : 'No Project';
+                        const color = proj ? proj.color : '#ccc';
+                        const pct = Math.round((dur / totalMonth) * 100);
+                        return `
+                <div style="display:flex;align-items:center;gap:10px">
+                  <span class="color-dot" style="background:${color}"></span>
+                  <span style="flex:1;font-size:0.85rem">${escapeHTML(name)}</span>
+                  <span style="font-family:var(--mono);font-size:0.82rem;color:var(--text2)">${formatDurationHM(dur)}</span>
+                  <span style="font-size:0.78rem;color:var(--text3);min-width:35px;text-align:right">${pct}%</span>
+                  <div style="width:80px;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden">
+                    <div style="width:${pct}%;height:100%;background:${color};border-radius:3px"></div>
+                  </div>
+                </div>`;
+                    }).join('');
+                }
+            }
+
+            function refreshStatsIfVisible() {
+                if (document.getElementById('view-stats').classList.contains('active')) {
+                    renderStats();
+                }
+            }
+
+            // ──────────────────────────────────────
+            // SETTINGS RENDER
+            // ──────────────────────────────────────
+            function renderProjectList() {
+                const container = document.getElementById('projectList');
+                container.innerHTML = projects.map(p => `
+              <span class="project-chip">
+                <span class="color-dot" style="background:${p.color}"></span> ${escapeHTML(p.name)}
+                <button class="btn btn-ghost btn-xs" data-delete-project="${p.id}" style="margin-left:4px;color:var(--red);opacity:0.5;font-size:1rem;line-height:1;padding:0 4px">×</button>
+              </span>`).join('');
+                container.querySelectorAll('[data-delete-project]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const pid = btn.dataset.deleteProject;
+                        projects = projects.filter(p => p.id !== pid);
+                        saveAll();
+                        renderProjectList();
+                        refreshProjectSelect();
+                        refreshAllViews();
+                        showToast('Project deleted.');
+                    });
+                });
+                refreshProjectSelect();
+            }
+
+            function refreshProjectSelect() {
+                const sel = document.getElementById('projectSelect');
+                const val = sel.value;
+                sel.innerHTML = '<option value="">No Project</option>' + projects.map(p =>
+                    `<option value="${p.id}">${escapeHTML(p.name)}</option>`).join('');
+                sel.value = currentProjectId || val || '';
+            }
+
+            function renderTagList() {
+                const container = document.getElementById('tagList');
+                container.innerHTML = tags.map(t => `
+              <span class="project-chip">
+                <span class="color-dot" style="background:${t.color}"></span> ${escapeHTML(t.name)}
+                <button class="btn btn-ghost btn-xs" data-delete-tag="${t.id}" style="margin-left:4px;color:var(--red);opacity:0.5;font-size:1rem;line-height:1;padding:0 4px">×</button>
+              </span>`).join('');
+                container.querySelectorAll('[data-delete-tag]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const tid = btn.dataset.deleteTag;
+                        tags = tags.filter(t => t.id !== tid);
+                        currentTagIds = currentTagIds.filter(id => id !== tid);
+                        saveAll();
+                        renderTagList();
+                        updateTagSelectorUI();
+                        saveTimerState();
+                        showToast('Tag deleted.');
+                    });
+                });
+            }
+
+            // ──────────────────────────────────────
+            // TOAST
+            // ──────────────────────────────────────
+            function showToast(msg) {
+                const el = document.getElementById('toast');
+                el.textContent = msg;
+                el.classList.add('show');
+                clearTimeout(el._timeout);
+                el._timeout = setTimeout(() => el.classList.remove('show'), 2200);
+            }
+
+            // ──────────────────────────────────────
+            // VIEW SWITCHING
+            // ──────────────────────────────────────
+            function switchView(viewName) {
+                document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+                document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
+                const viewEl = document.getElementById('view-' + viewName);
+                if (viewEl) viewEl.classList.add('active');
+                const navBtn = document.querySelector(`.sidebar-nav button[data-view="${viewName}"]`);
+                if (navBtn) navBtn.classList.add('active');
+                if (viewName === 'calendar') { renderCalendar();
+                    renderCalDayDetail(); }
+                if (viewName === 'stats') renderStats();
+                if (viewName === 'settings') { renderProjectList();
+                    renderTagList(); }
+                if (viewName === 'tracker') renderTodayEntries();
+                if (viewName === 'pomodoro') updatePomodoroDisplay();
+                // Close mobile sidebar
+                document.getElementById('sidebar').classList.remove('open');
+                document.getElementById('overlay').classList.remove('show');
+            }
+
+            function refreshAllViews() {
+                renderTodayEntries();
+                refreshCalendarIfVisible();
+                refreshStatsIfVisible();
+                renderProjectList();
+                renderTagList();
+                updateTagSelectorUI();
+            }
+
+            // ──────────────────────────────────────
+            // THEME
+            // ──────────────────────────────────────
+            function applyTheme() {
+                if (settings.darkMode) {
+                    document.body.classList.add('dark');
+                    document.getElementById('themeIcon').innerHTML =
+                        '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+                } else {
+                    document.body.classList.remove('dark');
+                    document.getElementById('themeIcon').innerHTML =
+                        '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+                }
+            }
+
+            function toggleTheme() {
+                settings.darkMode = !settings.darkMode;
+                applyTheme();
+                saveJSON(STORAGE_KEYS.settings, settings);
+            }
+
+            // ──────────────────────────────────────
+            // EXPORT / IMPORT
+            // ──────────────────────────────────────
+            function exportCSV() {
+                const headers = ['Date', 'Project', 'Task', 'Tags', 'Start Time', 'End Time', 'Duration (sec)',
+                    'Duration'
+                ];
+                const rows = entries.map(e => {
+                    const proj = getProject(e.projectId);
+                    const tagNames = e.tags.map(tid => getTag(tid)).filter(Boolean).map(t => t.name).join(';');
+                    return [
+                        e.date,
+                        proj ? proj.name : '',
+                        e.task,
+                        tagNames,
+                        e.startTime ? new Date(e.startTime).toISOString() : '',
+                        e.endTime ? new Date(e.endTime).toISOString() : '',
+                        e.duration,
+                        formatDuration(e.duration),
+                    ];
+                });
+                const csv = [headers, ...rows].map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(
+                    ',')).join('\n');
+                downloadFile('timemate_export.csv', csv, 'text/csv');
+            }
+
+            function exportJSON() {
+                const data = { projects, tags, entries, settings, pomodoroSessionCount, exportedAt: new Date()
+                        .toISOString() };
+                downloadFile('timemate_backup.json', JSON.stringify(data, null, 2), 'application/json');
+            }
+
+            function importJSON(file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        if (data.projects) projects = data.projects;
+                        if (data.tags) tags = data.tags;
+                        if (data.entries) entries = data.entries;
+                        if (data.settings) settings = data.settings;
+                        if (data.pomodoroSessionCount !== undefined) pomodoroSessionCount = data
+                            .pomodoroSessionCount;
+                        saveAll();
+                        refreshAllViews();
+                        applyTheme();
+                        showToast('Data imported successfully!');
+                    } catch (err) {
+                        showToast('Invalid file format.');
+                    }
+                };
+                reader.readAsText(file);
+            }
+
+            function clearAllData() {
+                if (confirm(
+                        'Are you sure you want to delete ALL data? This includes all projects, tags, and time entries. This cannot be undone.'
+                        )) {
+                    projects = [{ id: 'p1', name: 'Work', color: '#3B82F6', createdAt: Date.now() }];
+                    tags = [{ id: 't1', name: 'Deep Work', color: '#8B5CF6' }];
+                    entries = [];
+                    pomodoroSessionCount = 0;
+                    timerElapsed = 0;
+                    timerRunning = false;
+                    timerStartTime = null;
+                    currentProjectId = '';
+                    currentTask = '';
+                    currentTagIds = [];
+                    stopTimerInterval();
+                    saveAll();
+                    saveTimerState();
+                    refreshAllViews();
+                    updateTimerDisplay();
+                    updateTrackerUI();
+                    showToast('All data cleared.');
+                }
+            }
+
+            function downloadFile(filename, content, mimeType) {
+                const blob = new Blob([content], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast('Downloaded: ' + filename);
+            }
+
+            // ──────────────────────────────────────
+            // EVENT BINDINGS
+            // ──────────────────────────────────────
+            document.getElementById('timerStartBtn').addEventListener('click', () => {
+                currentProjectId = document.getElementById('projectSelect').value;
+                currentTask = document.getElementById('taskInput').value || 'Untitled';
+                startTimer();
+            });
+            document.getElementById('timerStopBtn').addEventListener('click', stopTimer);
+            document.getElementById('timerResetBtn').addEventListener('click', () => {
+                if (timerRunning && getCurrentTimerSeconds() > 0) {
+                    if (confirm('Reset the current timer? Unsaved time will be lost.')) resetTimer();
+                } else {
+                    resetTimer();
+                }
+            });
+            document.getElementById('projectSelect').addEventListener('change', function() {
+                currentProjectId = this.value;
+                saveTimerState();
+            });
+            document.getElementById('taskInput').addEventListener('input', function() {
+                currentTask = this.value;
+                saveTimerState();
+            });
+
+            // Pomodoro buttons
+            document.getElementById('pomodoroStartBtn').addEventListener('click', startPomodoro);
+            document.getElementById('pomodoroPauseBtn').addEventListener('click', pausePomodoro);
+            document.getElementById('pomodoroResetBtn').addEventListener('click', resetPomodoro);
+
+            // Calendar nav
+            document.getElementById('calPrevMonth').addEventListener('click', () => {
+                calMonth--;
+                if (calMonth < 0) { calMonth = 11;
+                    calYear--; }
+                renderCalendar();
+                renderCalDayDetail();
+            });
+            document.getElementById('calNextMonth').addEventListener('click', () => {
+                calMonth++;
+                if (calMonth > 11) { calMonth = 0;
+                    calYear++; }
+                renderCalendar();
+                renderCalDayDetail();
+            });
+
+            // Theme
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+
+            // Export
+            document.getElementById('exportBtn').addEventListener('click', exportCSV);
+            document.getElementById('exportAllBtn').addEventListener('click', exportJSON);
+            document.getElementById('importBtn').addEventListener('click', () => {
+                document.getElementById('importFileInput').click();
+            });
+            document.getElementById('importFileInput').addEventListener('change', function() {
+                if (this.files[0]) importJSON(this.files[0]);
+                this.value = '';
+            });
+            document.getElementById('clearDataBtn').addEventListener('click', clearAllData);
+
+            // Add project
+            document.getElementById('addProjectBtn').addEventListener('click', () => {
+                const nameInput = document.getElementById('newProjectName');
+                const colorInput = document.getElementById('newProjectColor');
+                const name = nameInput.value.trim();
+                if (!name) { showToast('Please enter a project name.');
+                    return; }
+                projects.push({ id: genId(), name, color: colorInput.value, createdAt: Date.now() });
+                nameInput.value = '';
+                saveAll();
+                renderProjectList();
+                refreshAllViews();
+                showToast('Project added: ' + name);
+            });
+
+            // Add tag (from tracker)
+            document.getElementById('addTagBtn').addEventListener('click', () => {
+                const name = prompt('New tag name:');
+                if (name && name.trim()) {
+                    const colors = ['#6B7280', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+                    tags.push({ id: genId(), name: name.trim(), color: colors[Math.floor(Math.random() * colors
+                            .length)] });
+                    saveAll();
+                    renderTagList();
+                    updateTagSelectorUI();
+                    showToast('Tag added: ' + name.trim());
+                }
+            });
+
+            // Add tag (from settings)
+            document.getElementById('addTagBtn2').addEventListener('click', () => {
+                const nameInput = document.getElementById('newTagName');
+                const colorInput = document.getElementById('newTagColor');
+                const name = nameInput.value.trim();
+                if (!name) { showToast('Please enter a tag name.');
+                    return; }
+                tags.push({ id: genId(), name, color: colorInput.value });
+                nameInput.value = '';
+                saveAll();
+                renderTagList();
+                updateTagSelectorUI();
+                showToast('Tag added: ' + name);
+            });
+
+            // Sidebar navigation
+            document.querySelectorAll('.sidebar-nav button[data-view]').forEach(btn => {
+                btn.addEventListener('click', () => switchView(btn.dataset.view));
+            });
+
+            // Mobile toggle
+            document.getElementById('mobileToggle').addEventListener('click', () => {
+                document.getElementById('sidebar').classList.toggle('open');
+                document.getElementById('overlay').classList.toggle('show');
+            });
+            document.getElementById('overlay').addEventListener('click', () => {
+                document.getElementById('sidebar').classList.remove('open');
+                document.getElementById('overlay').classList.remove('show');
+            });
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey || e.metaKey) {
+                    switch (e.key.toLowerCase()) {
+                        case '1':
+                            e.preventDefault();
+                            switchView('tracker');
+                            break;
+                        case '2':
+                            e.preventDefault();
+                            switchView('calendar');
+                            break;
+                        case '3':
+                            e.preventDefault();
+                            switchView('pomodoro');
+                            break;
+                        case '4':
+                            e.preventDefault();
+                            switchView('stats');
+                            break;
+                        case '5':
+                            e.preventDefault();
+                            switchView('settings');
+                            break;
+                        case 's':
+                            e.preventDefault();
+                            if (timerRunning) stopTimer();
+                            else startTimer();
+                            break;
+                    }
+                }
+                if (e.key === 'Escape') {
+                    document.getElementById('sidebar').classList.remove('open');
+                    document.getElementById('overlay').classList.remove('show');
+                }
+            });
+
+            // ──────────────────────────────────────
+            // INIT
+            // ──────────────────────────────────────
+            function init() {
+                applyTheme();
+                restoreTimerState();
+                updateTimerDisplay();
+                updateTrackerUI();
+                renderTodayEntries();
+                updatePomodoroDisplay();
+                updatePomodoroSessions();
+                renderProjectList();
+                renderTagList();
+                updateTagSelectorUI();
+                document.getElementById('currentDateDisplay').textContent =
+                    new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long',
+                        day: 'numeric' });
+                // Update date display every minute
+                setInterval(() => {
+                    document.getElementById('currentDateDisplay').textContent =
+                        new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric',
+                            month: 'long', day: 'numeric' });
+                }, 60000);
+            }
+
+            init();
+            console.log('%c⏱ TimeMate Ready %c| %cCtrl+1-5 navigate %c| %cCtrl+S start/stop',
+                'font-weight:bold;font-size:1.1em;', '', 'color:#3b82f6', '', 'color:#10b981');
+            console.log('%cAll data stored in your browser (localStorage). Export regularly!', 'color:#f59e0b');
+        })();
+    </script>
+</body>
+</html>
